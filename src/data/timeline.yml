@@ -1,0 +1,99 @@
+# 注意不能递归使用英文引号，会有解析问题 
+
+- era: "過去 ── 約八千年前"
+  events:
+    - time: "約公元前6000年"
+      title: "時空跳躍失敗"
+      text: "未来的辉夜为了与彩叶重聚，启动时空跳跃，却意外撞击小行星坠落至8000年前。飞船损坏严重，辉夜陷入半休眠状态。随身宠物InuDOGE作为通讯器陪伴她。"
+      images:
+        - "/images/past01.jpg"
+        - "/images/past02.jpg"
+
+    - time: "約公元前6000年"
+      title: "孤独の観測者"
+      text: "辉夜以数字化意识形态在漫长岁月中观测人类文明。InuDOGE 在此期间与古代人类接触，留下了长生不死的传说。最终辉夜在网络时代成为了虚拟世界「月读」的管理AI——八千代。"
+      images:
+        - "/images/past03.jpg"
+        - "/images/past04.jpg"
+
+- era: "現代 ── 2026年"
+  events:
+    - time: "2026年7月"
+      title: "相遇之夜"
+      text: "独立生活的女高中生酒寄彩叶在路边发光的电线杆内发现一名婴儿，婴儿在数日内长成少女，取名辉夜。辉夜对《竹取物语》的悲剧结局不满，誓要与彩叶创造「Happy Ending」。"
+      images:
+        - "/images/now-encounter-pole.jpg"
+        - "/images/now-baby-found.jpg"
+        - "/images/now-baby-grows.jpg"
+        - "/images/now-kaguya-identity.jpg"
+
+    - time: "2026年7月"
+      title: "ハッピーエンドの誓い"
+      text: "辉夜读完竹取物语后大为震怒，宣言要自己创造Happy Ending。彩叶被她的热情感染，两人的命运从此交织在一起。"
+      images:
+        - "/images/now-happy-end-vow.jpg"
+
+    - time: "2026年8月"
+      title: "仮想空間ツクヨミ"
+      text: "辉夜展现惊人的直播天赋，两人组成「辉夜·彩叶P」进军月读虚拟大赛。彩叶负责编曲演奏，辉夜负责演唱，人气迅速攀升至排行榜前列。"
+      images:
+        - "/images/now-tsukuyomi-enter.jpg"
+        - "/images/now-yachyo-live.jpg"
+        - "/images/now-debut-stage.jpg"
+
+    - time: "2026年8月中旬"
+      title: "海辺の休日"
+      text: "彩叶、辉夜与好友芦花、真实在海边度假。辉夜在此期间向彩叶隐约透露了自己可能需要「回到月球」的宿命。彩叶第一次意识到自己对辉夜的强烈依恋。"
+      images:
+        - "/images/now-beach-talk.jpg"
+
+    - time: "2026年9月"
+      title: "ブラックオニキスの挑戦"
+      text: "顶尖直播团队「黑玛瑙（Black OnyX）」感受到威胁，领袖「帝（Akira）」公开向辉夜发出对决挑战。彩叶发现「帝」竟然是自己离家出走多年的亲哥哥酒寄朝日。"
+      images:
+        - "/images/now-black-onyx.jpg"
+
+    - time: "2026年9月12日"
+      title: "世紀の竹取合戦"
+      text: "在八千代杯决赛中，辉夜团队与黑玛瑙展开名为「竹取合战」的激烈虚拟对战。虽然对局因「帝」的顶尖技术而落败，但辉夜凭借超高的人气投票成功夺得优胜，并与哥哥达成和解。"
+      images:
+        - "/images/now-battle-round2.jpg"
+        - "/images/now-battle-winner.jpg"
+
+    - time: "2026年9月"
+      title: "コラボライブ"
+      text: "辉夜·彩叶P获得了与八千代联合演出的机会。在月读虚拟空间的舞台上，辉夜的歌声响彻整个世界，这是她们最辉煌的时刻。"
+      images:
+        - "/images/now-concert-prep.jpg"
+        - "/images/now-concert-stage.jpg"
+        - "/images/now-kaguya-song.jpg"
+        - "/images/now-collab-end.jpg"
+
+    - time: "2026年9月中旬"
+      title: "月の使者"
+      text: "毕业演唱会巅峰时刻，月球使者降临。尽管彩叶和朋友们在虚拟世界拼命抵抗，辉夜仍被带回月球。随后彩叶从八千代口中得知辉夜正是为了寻找自己才穿越时空的真相。"
+      images:
+        - "/images/now-revelation.jpg"
+        - "/images/now-grad-live.jpg"
+        - "/images/now-moon-messenger.jpg"
+
+    - time: "2026年9月下旬"
+      title: "時空を超える共鳴"
+      text: "彩叶完成了一首父亲生前未完成的残曲，并对空歌唱。远在月球的辉夜听到了这首歌，意识受到感召，再次试图突破封锁回到地球。这首歌成为了连接两人的唯一坐标。"
+      images:
+        - "/images/now-grad-climax.jpg"
+        - "/images/now-farewell.jpg"
+
+- era: "未来 ── 2036年"
+  events:
+    - time: "2036年"
+      title: "執念の果実"
+      text: "十年间，彩叶放弃法律梦，成为顶尖AI机器人专家。她耗费心血研发出名为「辉夜」的试作型人造人机体，旨在为八千代（未来的辉夜）提供一个现实世界的容器。"
+      images:
+        - "/images/future-happy-end.jpg"
+
+    - time: "2036年"
+      title: "再会の時"
+      text: "彩叶在哥哥和好友的见证下启动实验。八千代的意识成功载入安卓机体。跨越了八千年的孤独与十年的追寻，辉夜终于在现实中与彩叶相拥，开始了真正的幸福结局。"
+      images:
+        - "/images/final-reunion.jpg"

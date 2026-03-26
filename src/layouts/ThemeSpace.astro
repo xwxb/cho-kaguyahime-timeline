@@ -1,0 +1,691 @@
+---
+/**
+ * ThemeSpace.astro — 超歌姬辉夜姬 时间轴
+ *
+ * 三段叙事情绪区：
+ *   过去  (era-past)   — 极暗冷，8000年孤独等待，极简银白线条
+ *   现代  (era-now)    — 月读虚拟世界，深蓝底+青色流光+琥珀鸟居暖光
+ *   未来  (era-future) — 破晓温暖，琥珀色与晨曦金的绽放
+ *
+ * 架构：
+ *   - 首屏鸟瞰入口 → 侧边导航 → 段间背景穿梭 → 段内自由滚动
+ *   - 粒子系统随时代切换物理特性
+ *   - 滚动阻尼(scrub)随叙事情感变化
+ */
+import type { TimelineEra } from '@/types/timeline';
+
+interface Props {
+  title: string;
+  eras: TimelineEra[];
+  theme?: string; // 预留：通过 URL path 或 prop 切换主题
+}
+
+const { title, eras, theme = 'space' } = Astro.props;
+
+const ERA_CONFIGS = [
+  { id: 'past', name: '過去', nameJa: 'むかし', desc: '八千年の孤独', kanji: '八千年' },
+  { id: 'now', name: '現代', nameJa: 'いま', desc: '月読の邂逅', kanji: '月読' },
+  { id: 'future', name: '未来', nameJa: 'みらい', desc: '時を超える再会', kanji: '再会' },
+];
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Noto+Serif+SC:wght@300;400;700&family=Inter:wght@300;400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --c-bg: #020205;
+        --c-light: #E2E8F0;
+        --c-accent: #E2E8F0;
+        --c-text: #b0b8d8;
+      }
+
+      * { box-sizing: border-box; }
+
+      html {
+        background-color: var(--c-bg);
+        color: var(--c-text);
+        font-family: 'Noto Serif SC', 'Inter', system-ui, sans-serif;
+        overflow-x: hidden;
+      }
+
+      body { margin: 0; }
+
+      /* ── 全局背景层 ── */
+      #particle-canvas {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+      }
+
+      .bg-kanji {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-family: 'Noto Serif SC', serif;
+        font-size: 30vw;
+        font-weight: 700;
+        color: var(--c-light);
+        opacity: 0;
+        z-index: 0;
+        pointer-events: none;
+        white-space: nowrap;
+        transition: color 1.5s ease;
+      }
+
+      /* ── 首屏鸟瞰 ── */
+      .hero-section {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero-title {
+        font-family: 'Cinzel', 'Noto Serif SC', serif;
+        font-size: clamp(2rem, 5vw, 4rem);
+        font-weight: 700;
+        color: var(--c-light);
+        text-shadow: 0 0 30px rgba(226, 232, 240, 0.15);
+        text-align: center;
+        letter-spacing: 0.08em;
+        opacity: 0;
+      }
+
+      .hero-sub {
+        margin-top: 1rem;
+        font-family: 'Cinzel', serif;
+        font-size: 0.85rem;
+        letter-spacing: 0.3em;
+        color: var(--c-text);
+        opacity: 0;
+      }
+
+      .birds-eye-nav {
+        display: flex;
+        gap: 2rem;
+        margin-top: 4rem;
+        z-index: 10;
+      }
+
+      .bird-card {
+        width: 200px;
+        height: 280px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 4px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 1.5rem;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        position: relative;
+        overflow: hidden;
+        opacity: 0;
+        transform: translateY(30px);
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease;
+      }
+
+      .bird-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.85) 100%);
+        z-index: 0;
+      }
+
+      .bird-card:hover {
+        transform: translateY(-8px);
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+
+      .bird-card h3 {
+        font-family: 'Noto Serif SC', serif;
+        font-size: 1.4rem;
+        margin: 0 0 0.4rem 0;
+        color: #fff;
+        position: relative;
+        z-index: 1;
+      }
+
+      .bird-card p {
+        font-size: 0.8rem;
+        margin: 0;
+        opacity: 0.6;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* ── 侧边导航 ── */
+      .side-nav {
+        position: fixed;
+        left: 1.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 1.2rem;
+        z-index: 50;
+        opacity: 0;
+        transition: opacity 0.6s ease;
+      }
+
+      .side-nav.visible { opacity: 1; }
+
+      .nav-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.15);
+        position: relative;
+        cursor: pointer;
+        transition: all 0.4s ease;
+      }
+
+      .nav-dot::after {
+        content: attr(data-label);
+        position: absolute;
+        left: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-family: 'Noto Serif SC', serif;
+        font-size: 0.75rem;
+        color: var(--c-light);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        white-space: nowrap;
+      }
+
+      .nav-dot:hover::after,
+      .nav-dot.active::after { opacity: 0.8; }
+
+      .nav-dot.active {
+        background-color: var(--c-light);
+        box-shadow: 0 0 8px var(--c-light);
+        transform: scale(1.8);
+      }
+
+      /* ── 时代容器 ── */
+      .timeline-main {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 2rem 0 5rem;
+        position: relative;
+        z-index: 1;
+      }
+
+      .era-section {
+        min-height: 100vh;
+        padding: 10rem 0 6rem;
+        position: relative;
+      }
+
+      /* ── 时代标题 ── */
+      .era-badge {
+        font-family: 'Noto Serif SC', serif;
+        font-size: clamp(1.8rem, 4vw, 2.5rem);
+        font-weight: 700;
+        color: var(--c-light);
+        margin-bottom: 4rem;
+        opacity: 0;
+        transform: translateX(-30px);
+      }
+
+      /* ── 时间轴线 ── */
+      .orbit-line {
+        position: absolute;
+        left: 1.5rem;
+        top: 0;
+        bottom: 0;
+      }
+
+      /* ── 事件卡片通用 ── */
+      .event-card {
+        padding: 1.5rem;
+        position: relative;
+        opacity: 0;
+        transform: translateY(40px);
+      }
+
+      .event-time {
+        font-family: 'Cinzel', serif;
+        font-size: 0.85rem;
+        letter-spacing: 0.12em;
+        margin-bottom: 0.4rem;
+        color: var(--c-light);
+      }
+
+      .event-title {
+        font-family: 'Noto Serif SC', serif;
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 0.8rem;
+        color: #fff;
+      }
+
+      .event-text {
+        font-size: 0.95rem;
+        line-height: 1.8;
+        color: var(--c-text);
+      }
+
+      .image-grid {
+        margin-top: 1.2rem;
+        display: grid;
+        gap: 0.5rem;
+      }
+      .image-grid.cols-1 { grid-template-columns: 1fr; }
+      .image-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+      .image-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+      .image-grid.cols-4 { grid-template-columns: 1fr 1fr; }
+
+      .image-grid img {
+        border-radius: 4px;
+        object-fit: cover;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        filter: brightness(0.75);
+        transition: filter 0.4s ease;
+      }
+
+      .image-grid img:hover { filter: brightness(1); }
+
+      /* ═══ 过去：极简、垂直刻度、银白冷光 ═══ */
+      .era-past .orbit-line {
+        background: linear-gradient(180deg, transparent, rgba(226, 232, 240, 0.4) 15%, rgba(226, 232, 240, 0.15) 100%);
+        width: 1px;
+      }
+      .era-past .event-card {
+        border-left: 1px solid rgba(226, 232, 240, 0.15);
+        background: transparent;
+        border-radius: 0;
+        padding-left: 2rem;
+      }
+      .era-past .orbit-node {
+        width: 3px;
+        height: 18px;
+        background: rgba(226, 232, 240, 0.6);
+        box-shadow: 0 0 8px rgba(226, 232, 240, 0.3);
+        border-radius: 0;
+        flex-shrink: 0;
+        margin-top: 4px;
+      }
+
+      /* ═══ 现代：月读空间、鸟居横梁、青蓝+琥珀 ═══ */
+      .era-now .orbit-line {
+        background: linear-gradient(180deg, transparent, #00F0FF 8%, #00F0FF 92%, transparent);
+        width: 2px;
+        box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+      }
+      .era-now .event-card {
+        background: rgba(10, 17, 40, 0.55);
+        border: 1px solid rgba(0, 240, 255, 0.15);
+        border-top: 3px solid #FF9D00;
+        border-radius: 4px;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      }
+      .era-now .orbit-node {
+        width: 10px;
+        height: 10px;
+        background: #00F0FF;
+        box-shadow: 0 0 12px #00F0FF;
+        border-radius: 50%;
+        flex-shrink: 0;
+        margin-top: 4px;
+      }
+      .era-now .event-time {
+        color: #FF9D00;
+        text-shadow: 0 0 8px rgba(255, 157, 0, 0.3);
+      }
+
+      /* ═══ 未来：圆融、琥珀暖光、绽放 ═══ */
+      .era-future .orbit-line {
+        background: linear-gradient(180deg, transparent, #FFD700 40%, rgba(255, 215, 0, 0.3) 100%);
+        width: 2px;
+      }
+      .era-future .event-card {
+        background: radial-gradient(circle at top right, rgba(255, 215, 0, 0.08), transparent 50%), rgba(42, 26, 10, 0.7);
+        border: 1px solid rgba(255, 215, 0, 0.2);
+        border-radius: 12px;
+        backdrop-filter: blur(8px);
+      }
+      .era-future .orbit-node {
+        width: 14px;
+        height: 14px;
+        background: #FFD700;
+        box-shadow: 0 0 16px #FFD700, 0 0 40px rgba(255, 215, 0, 0.4);
+        border-radius: 50%;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+      .era-future .event-time { color: #FFD700; }
+
+      /* ── Footer ── */
+      .timeline-footer {
+        text-align: center;
+        padding: 6rem 0 4rem;
+        position: relative;
+        z-index: 1;
+      }
+      .timeline-footer p {
+        font-family: 'Cinzel', serif;
+        letter-spacing: 0.3em;
+        font-size: 0.8rem;
+        color: var(--c-light);
+        opacity: 0.3;
+      }
+    </style>
+  </head>
+
+  <body>
+    <canvas id="particle-canvas"></canvas>
+    <div class="bg-kanji" id="bg-kanji">序</div>
+
+    <!-- 侧边导航 -->
+    <nav class="side-nav" id="side-nav">
+      <div class="nav-dot active" data-target="hero" data-label="序"></div>
+      {ERA_CONFIGS.map((config, i) => (
+        <div class="nav-dot" data-target={`era-${i}`} data-label={config.name}></div>
+      ))}
+    </nav>
+
+    <!-- 首屏鸟瞰 -->
+    <header class="hero-section" id="hero">
+      <p class="hero-ja" style="font-family: 'Noto Serif SC', serif; font-size: 1rem; letter-spacing: 0.5em; color: var(--c-text); opacity: 0; margin-bottom: 0.8rem;">超かぐや姫！</p>
+      <h1 class="hero-title">{title}</h1>
+      <p class="hero-sub">CHRONICLES OF KAGUYA</p>
+
+      <div class="birds-eye-nav">
+        {ERA_CONFIGS.map((config, i) => (
+          <a class="bird-card" data-target={`era-${i}`}>
+            <span style="font-size: 0.7rem; letter-spacing: 0.2em; opacity: 0.5; position: relative; z-index: 1;">{config.nameJa}</span>
+            <h3>{config.name}</h3>
+            <p>{config.desc}</p>
+          </a>
+        ))}
+      </div>
+    </header>
+
+    <!-- 时间线主体 -->
+    <main class="timeline-main">
+      {
+        eras.map((era, eraIdx) => {
+          const config = ERA_CONFIGS[eraIdx];
+          return (
+            <section class={`era-section era-${config.id}`} id={`era-${eraIdx}`} data-era={eraIdx}>
+              <h2 class="era-badge">{era.era}</h2>
+
+              <div style="position: relative; padding-left: 3rem;">
+                <div class="orbit-line" />
+
+                <div style="display: flex; flex-direction: column; gap: 3.5rem;">
+                  {era.events.map((event) => (
+                    <div style="display: flex; gap: 1.2rem; align-items: flex-start;">
+                      <div class="orbit-node" />
+                      <div class="event-card" style="flex: 1;">
+                        <div class="event-time">{event.time}</div>
+                        {event.title && <div class="event-title">{event.title}</div>}
+                        <p class="event-text">{event.text}</p>
+                        {event.images && event.images.length > 0 && (
+                          <div class={`image-grid ${event.images.length <= 1 ? 'cols-1' : event.images.length === 2 ? 'cols-2' : event.images.length === 3 ? 'cols-3' : 'cols-4'}`}>
+                            {event.images.map((src) => (
+                              <img src={src} alt={event.title || event.time} loading="lazy" />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          );
+        })
+      }
+    </main>
+
+    <footer class="timeline-footer">
+      <p style="margin-bottom: 0.8rem;">✦ 終 ✦</p>
+      <p style="font-size: 0.7rem; opacity: 0.2; letter-spacing: 0.15em;">これは彩葉とかぐや姫の物語</p>
+    </footer>
+
+    <script>
+      import Lenis from '@studio-freight/lenis';
+      import gsap from 'gsap';
+      import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+      gsap.registerPlugin(ScrollTrigger);
+
+      /**
+       * 三时代视觉配置
+       * bg: 背景色  light: 主光色  accent: 强调色
+       * kanji: 背景汉字纹理  scrub: 滚动阻尼(情感重量)
+       */
+      const ERA_THEMES = [
+        { bg: '#020205', light: '#E2E8F0', accent: '#E2E8F0', kanji: '八千年', scrub: 2.5 },
+        { bg: '#0A1128', light: '#00F0FF', accent: '#FF9D00', kanji: '月読', scrub: 1 },
+        { bg: '#1A1005', light: '#FFD700', accent: '#FFD700', kanji: '再会', scrub: 0.4 },
+      ];
+
+      // ── Lenis 平滑滚动 ──
+      const lenis = new Lenis({
+        duration: 1.8,
+        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true,
+      });
+      lenis.on('scroll', ScrollTrigger.update);
+      gsap.ticker.add((time: number) => { lenis.raf(time * 1000); });
+      gsap.ticker.lagSmoothing(0);
+
+      // ── 导航点击跳转 ──
+      document.querySelectorAll<HTMLElement>('[data-target]').forEach(el => {
+        el.addEventListener('click', (e) => {
+          e.preventDefault();
+          const target = document.getElementById(el.dataset.target!);
+          if (target) lenis.scrollTo(target, { offset: -50 });
+        });
+      });
+
+      // ── 首屏入场动画 (Atmosphere Before Content) ──
+      const heroTl = gsap.timeline({ delay: 0.3 });
+      heroTl
+        .to('.hero-ja', { opacity: 0.6, duration: 1.2, ease: 'power2.out' })
+        .to('.hero-title', { opacity: 1, duration: 1.5, ease: 'power2.out' }, '-=0.6')
+        .to('.hero-sub', { opacity: 1, duration: 1, ease: 'power2.out' }, '-=0.8')
+        .to('.bird-card', {
+          opacity: 1, y: 0, duration: 0.8,
+          stagger: { each: 0.15, from: 'center' },
+          ease: 'power3.out',
+        }, '-=0.5');
+
+      // ── 全局状态 ──
+      const root = document.documentElement;
+      const bgKanji = document.getElementById('bg-kanji')!;
+      const sideNav = document.getElementById('side-nav')!;
+      const navDots = document.querySelectorAll<HTMLElement>('.nav-dot');
+      let currentEra = -1;
+
+      function setTheme(index: number) {
+        if (index === currentEra) return;
+        currentEra = index;
+
+        navDots.forEach((dot, i) => {
+          dot.classList.toggle('active', i === index + 1);
+        });
+
+        if (index === -1) {
+          gsap.to(root, { '--c-bg': '#020205', '--c-light': '#E2E8F0', duration: 1.2, ease: 'power2.inOut' });
+          gsap.to(bgKanji, { opacity: 0, duration: 0.8 });
+          return;
+        }
+
+        const theme = ERA_THEMES[index];
+        gsap.to(root, {
+          '--c-bg': theme.bg,
+          '--c-light': theme.light,
+          '--c-accent': theme.accent,
+          duration: 1.2,
+          ease: 'power2.inOut',
+        });
+
+        bgKanji.textContent = theme.kanji;
+        gsap.fromTo(bgKanji,
+          { opacity: 0, scale: 0.85 },
+          { opacity: 0.035, scale: 1, duration: 2, ease: 'power2.out' }
+        );
+      }
+
+      // 侧边导航在离开首屏后显示
+      ScrollTrigger.create({
+        trigger: '#hero',
+        start: 'bottom 80%',
+        onEnter: () => sideNav.classList.add('visible'),
+        onLeaveBack: () => sideNav.classList.remove('visible'),
+      });
+
+      // 监听时代切换
+      document.querySelectorAll('.era-section').forEach((section, i) => {
+        ScrollTrigger.create({
+          trigger: section,
+          start: 'top 50%',
+          end: 'bottom 50%',
+          onEnter: () => setTheme(i),
+          onEnterBack: () => setTheme(i),
+          onLeaveBack: () => { if (i === 0) setTheme(-1); },
+        });
+      });
+
+      // ── 滚动动画 ──
+      document.querySelectorAll('.era-section').forEach((section, i) => {
+        const { scrub } = ERA_THEMES[i];
+
+        const badge = section.querySelector('.era-badge');
+        if (badge) {
+          gsap.to(badge, {
+            opacity: 1, x: 0,
+            scrollTrigger: { trigger: badge, start: 'top 82%', end: 'top 55%', scrub },
+          });
+        }
+
+        section.querySelectorAll('.event-card').forEach((card) => {
+          gsap.to(card, {
+            opacity: 1, y: 0,
+            scrollTrigger: { trigger: card, start: 'top 88%', end: 'top 65%', scrub },
+          });
+        });
+      });
+
+      // ── 粒子系统 ──
+      const canvas = document.getElementById('particle-canvas') as HTMLCanvasElement;
+      const ctx = canvas.getContext('2d')!;
+
+      interface Particle {
+        x: number; y: number; r: number;
+        vx: number; vy: number;
+        life: number; maxLife: number;
+      }
+
+      let particles: Particle[] = [];
+      const PARTICLE_COUNT = 80;
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+
+      function spawnParticle(): Particle {
+        const era = currentEra;
+        return {
+          x: Math.random() * canvas.width,
+          y: era === 1 ? canvas.height + Math.random() * 20 : Math.random() * canvas.height,
+          r: era === 2 ? Math.random() * 2.5 + 1 : Math.random() * 1.5 + 0.3,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: 0,
+          life: 0,
+          maxLife: Math.random() * 250 + 120,
+        };
+      }
+
+      function initParticles() {
+        particles = Array.from({ length: PARTICLE_COUNT }, spawnParticle);
+      }
+
+      // 粒子颜色映射：过去=月光银白 现代=青色流光 未来=琥珀暖光
+      const PARTICLE_COLORS: Record<number, string> = {
+        [-1]: '226, 232, 240',
+        0: '200, 210, 230',
+        1: '0, 220, 255',
+        2: '255, 200, 50',
+      };
+
+      function tick() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const colorRgb = PARTICLE_COLORS[currentEra] ?? PARTICLE_COLORS[-1];
+
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          p.life++;
+
+          // 物理特性随时代变化
+          switch (currentEra) {
+            case 0: case -1:
+              // 过去/首屏：极慢漂浮，月光散射般缓缓上升
+              p.vy += -0.002;
+              p.vy = Math.max(p.vy, -0.15);
+              break;
+            case 1:
+              // 现代：水波光柱般快速上升，带横向摇摆
+              p.vy = -0.8 - Math.random() * 0.6;
+              p.vx += (Math.random() - 0.5) * 0.08;
+              break;
+            case 2:
+              // 未来：温暖的四散绽放
+              p.vy += (Math.random() - 0.5) * 0.02;
+              p.vx += (Math.random() - 0.5) * 0.02;
+              break;
+          }
+
+          p.x += p.vx;
+          p.y += p.vy;
+
+          const progress = p.life / p.maxLife;
+          const alpha = Math.sin(progress * Math.PI) * 0.45;
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${colorRgb}, ${alpha})`;
+          ctx.fill();
+
+          const oob = p.y < -10 || p.y > canvas.height + 10 || p.x < -10 || p.x > canvas.width + 10;
+          if (p.life >= p.maxLife || oob) {
+            particles[i] = spawnParticle();
+          }
+        }
+
+        requestAnimationFrame(tick);
+      }
+
+      window.addEventListener('resize', resize);
+      resize();
+      initParticles();
+      tick();
+    </script>
+  </body>
+</html>

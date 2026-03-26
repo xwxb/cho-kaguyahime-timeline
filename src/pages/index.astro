@@ -1,0 +1,16 @@
+---
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { load } from 'js-yaml';
+import TimelineLayout from '@/layouts/ThemeSpace.astro';
+import type { TimelineEra } from '@/types/timeline';
+
+const raw = readFileSync(resolve(process.cwd(), 'src/data/timeline.yml'), 'utf-8');
+const eras = load(raw) as TimelineEra[];
+
+// 主题预留：未来可通过 /theme/xxx 路由或 query param 切换
+// 当前默认 'space'，后续可扩展 'cyber'、'traditional' 等
+const theme = Astro.url.searchParams.get('theme') ?? 'space';
+---
+
+<TimelineLayout title="超时空辉夜姬 — Timeline" eras={eras} theme={theme} />
