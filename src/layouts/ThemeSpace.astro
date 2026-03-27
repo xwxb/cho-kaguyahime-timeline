@@ -300,11 +300,17 @@ const ERA_CONFIGS = [
         object-fit: cover;
         width: 100%;
         aspect-ratio: 16 / 9;
-        filter: brightness(0.75);
-        transition: filter 0.4s ease;
+        filter: blur(8px) brightness(0.5);
+        opacity: 0;
+        transition: opacity 0.6s ease;
       }
 
-      .image-grid img:hover { filter: brightness(1); }
+      .image-grid img.img-loaded {
+        filter: brightness(0.75);
+        opacity: 1;
+      }
+
+      .image-grid img.img-loaded:hover { filter: brightness(1); }
 
       /* ═══ 过去：极简、垂直刻度、银白冷光 ═══ */
       .era-past .orbit-line {
@@ -377,6 +383,71 @@ const ERA_CONFIGS = [
       }
       .era-future .event-time { color: #FFD700; }
 
+      /* ── 移动端适配 ── */
+      @media (max-width: 640px) {
+        /* 鸟瞰导航：横向滚动，防止内容溢出 */
+        .birds-eye-nav {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scroll-snap-type: x mandatory;
+          padding: 0 1.5rem 0.5rem;
+          margin-top: 2.5rem;
+          gap: 1rem;
+          justify-content: flex-start;
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+          width: 100%;
+        }
+        .birds-eye-nav::-webkit-scrollbar { display: none; }
+        .bird-card {
+          width: 140px;
+          height: 200px;
+          flex-shrink: 0;
+          scroll-snap-align: center;
+        }
+
+        /* 时间轴主体：减少内边距 */
+        .timeline-main {
+          padding: 0 1rem 0 2.8rem;
+        }
+        .era-section {
+          padding: 6rem 0 3rem;
+        }
+        .era-badge {
+          margin-bottom: 2.5rem;
+        }
+
+        /* 事件卡片：减少内边距 */
+        .event-card {
+          padding: 1.2rem;
+        }
+        .era-past .event-card {
+          padding-left: 1.5rem;
+        }
+
+        /* 图片网格：小屏最多两列 */
+        .image-grid.cols-3,
+        .image-grid.cols-4 {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        /* 侧边导航：向内收 */
+        .side-nav {
+          left: 0.4rem;
+          gap: 1rem;
+        }
+        /* 增大触摸热区 */
+        .nav-dot::before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 44px;
+          height: 44px;
+        }
+      }
+
       /* ── Footer ── */
       .timeline-footer {
         text-align: center;
@@ -446,7 +517,7 @@ const ERA_CONFIGS = [
                         {event.images && event.images.length > 0 && (
                           <div class={`image-grid ${event.images.length <= 1 ? 'cols-1' : event.images.length === 2 ? 'cols-2' : event.images.length === 3 ? 'cols-3' : 'cols-4'}`}>
                             {event.images.map((src) => (
-                              <img src={src} alt={event.title || event.time} loading="lazy" />
+                              <img src={src} alt={event.title || event.time} loading="lazy" decoding="async" />
                             ))}
                           </div>
                         )}
@@ -603,7 +674,8 @@ const ERA_CONFIGS = [
       }
 
       let particles: Particle[] = [];
-      const PARTICLE_COUNT = 80;
+      const MOBILE_BREAKPOINT = 640;
+      const PARTICLE_COUNT = window.innerWidth < MOBILE_BREAKPOINT ? 40 : 80;
 
       function resize() {
         canvas.width = window.innerWidth;
@@ -686,6 +758,17 @@ const ERA_CONFIGS = [
       resize();
       initParticles();
       tick();
+
+      // ── 图片渐进显示（懒加载后淡入） ──
+      document.querySelectorAll<HTMLImageElement>('.image-grid img').forEach(img => {
+        const reveal = () => img.classList.add('img-loaded');
+        if (img.complete && img.naturalWidth > 0) {
+          reveal();
+        } else {
+          img.addEventListener('load', reveal, { once: true });
+          img.addEventListener('error', reveal, { once: true });
+        }
+      });
     </script>
   </body>
 </html>
